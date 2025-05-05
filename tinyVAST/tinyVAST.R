@@ -9,6 +9,7 @@ library(fmesher)
 library(googledrive)
 
 # Read sampling data
+# Data are on google drive here: https://drive.google.com/drive/folders/1EeaN-mJcWyjEyvQbzxk7bzlOELfGuuj5
 data_dir = file.path(getwd(), "data")
 if( !("merl_TATBTC.AMMED.rds" %in% list.files(data_dir)) ){
   Data_drive <- drive_get( "merl_TATBTC.AMMED.rds",
