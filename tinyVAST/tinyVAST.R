@@ -7,6 +7,8 @@ library(tinyVAST)
 library(sf)
 library(fmesher)
 library(googledrive)
+library(dplyr)
+library(ggplot2)
 
 # Read sampling data
 # Data are on google drive here:
@@ -57,7 +59,6 @@ tapply( pape$nblon,
 plot( grid$X, grid$Y )
 points(pape$X, pape$Y, col="blue")
 
-library(ggplot2)
 ggplot( pape ) +
   geom_point( aes( x=X, y=Y, col=month) ) +
   facet_wrap( ~ year )
@@ -235,9 +236,10 @@ merl = remove_all_zeros( merl )
 #################
 
 species = c("pape", "merl")[1]
-covs = c("by_len", "const", "no")[1]
+covs = c("by_len", "const", "no")[2]
 
-Date = Sys.Date()
+#Date = Sys.Date()
+  Date = "2025-05-07"
   run_dir = file.path( getwd(), Date, paste0(species,"_covs=",covs) )
   dir.create(run_dir, recursive = TRUE)
 
@@ -388,7 +390,7 @@ if( covs=="const" ){
   #
   form = nblon ~ offset(log.swept.area) + 0 + interaction(year,length_bin) + s(tmp_bot) + s(depth) + ti(depth,bin_num)
   # Didn't converge
-  form = nblon ~ offset(log.swept.area) + 0 + interaction(year,length_bin) + s(tmp_bot) + s(depth) + ti(tmp_bot,bin_num)
+  #form = nblon ~ offset(log.swept.area) + 0 + interaction(year,length_bin) + s(tmp_bot) + s(depth) + ti(tmp_bot,bin_num)
   # Full covariate:bin_num didn't work
   #form = nblon ~ offset(log.swept.area) + 0 + interaction(year,length_bin) + te(tmp_bot,bin_num) + te(depth,bin_num)
   # Marginal covariate + ti( covariate, bin_num) didn't converge
@@ -397,32 +399,36 @@ if( covs=="const" ){
   stop("Check")
 }
 
-# swept.area
-fit = tinyVAST(
-  # Specification
-  data = data_species,
-  formula = form,
-  space_term = space_term,
-  spacetime_term = spacetime_term,
-  family = Family,
+if( "fit.RDS" %in% list.files(run_dir) ){
+  fit = readRDS( file = file.path(run_dir, "fit.RDS") )
+}else{
+  # swept.area
+  fit = tinyVAST(
+    # Specification
+    data = data_species,
+    formula = form,
+    space_term = space_term,
+    spacetime_term = spacetime_term,
+    family = Family,
 
-  # Indicators
-  variable_column = "length_bin",
-  time_column = "year",
-  times = min(data_species$year):max(data_species$year),
-  distribution_column = "length_bin",
-  space_columns = c("X_crs", "Y_crs"),
+    # Indicators
+    variable_column = "length_bin",
+    time_column = "year",
+    times = min(data_species$year):max(data_species$year),
+    distribution_column = "length_bin",
+    space_columns = c("X_crs", "Y_crs"),
 
-  # Settings
-  control = tinyVASTcontrol(
-    trace = 1
-  ),
-  spatial_domain = mesh
-)
+    # Settings
+    control = tinyVASTcontrol(
+      trace = 1
+    ),
+    spatial_domain = mesh
+  )
 
-#
-saveRDS( fit,
-      file = file.path(run_dir, "fit.RDS") )
+  #
+  saveRDS( fit,
+        file = file.path(run_dir, "fit.RDS") )
+}
 
 ##################
 # Plots
@@ -430,7 +436,7 @@ saveRDS( fit,
 #library(visreg)
 #visreg(fit, xvar="tmp_bot", what="p_g")
 
-if( covs=="yes" ){
+if( covs %in% c("const", "by_len") ){
   # compute partial dependence plot
   library(pdp)
 
@@ -454,28 +460,35 @@ if( covs=="yes" ){
 }
 
 #
-grid = as.data.frame(grid_1516)
-grid$tmp_bot = (grid$tmp_bot - 10) / 10
-grid$depth = grid$depth / 100
-
-#
-grid = subset( grid, year %in% unique(data_species$year) )
-grid_sf = st_as_sf( x = grid, coords = c("X.utm","Y.utm"), crs = st_crs(32633) )
-grid_sf = st_geometry(grid_sf)
-
-#
 for( bin_i in seq_along(unique(data_species$length_bin)) ){
+  #
+  grid = as.data.frame(grid_1516)
+  grid$tmp_bot = (grid$tmp_bot - 10) / 10
+  grid$depth = grid$depth / 100
+
+  #
+  grid = subset( grid, year %in% unique(data_species$year) )
+  grid$length_bin = unique(data_species$length_bin)[bin_i]
+  grid = remove_all_zeros( data_species, grid )
+  grid_sf = st_as_sf( x = grid, coords = c("X.utm","Y.utm"), crs = st_crs(32633) )
+  grid_sf = st_geometry(grid_sf)
+
   newdata = cbind( grid,
                    X_crs = grid$X.utm / 1000,
                    Y_crs = grid$Y.utm / 1000,
                    length_bin = unique(data_species$length_bin)[bin_i] )
   # Remove same zeros
-  newdata = remove_all_zeros( data_species, newdata )
+  #newdata = remove_all_zeros( data_species, newdata )
   newdata = cbind( newdata, log.swept.area = log(1) )
 
   #
   log_d = predict(fit, newdata = newdata, what = "p_g")
+  #log_d = ifelse( log_d < max(log_d - log(1e3)), NA, log_d )
   plot_sf = st_sf( grid_sf, log_d = log_d, year = grid$year )
+
+  plot_sf <- plot_sf %>%
+    group_by(year) %>%
+    mutate(log_d = ifelse( log_d < max(log_d - log(1e3)), NA, log_d ) )
 
   #
   ggplot( plot_sf) +
@@ -495,45 +508,53 @@ png( file.path(run_dir, "DHARMa.png"), width=5, height=5, res=200, units="in" )
 dev.off()
 
 # Get abundance
-N_jz = expand.grid( length_bin = unique(data_species$length_bin), year=unique(data_species$year) )
-N_jz = remove_all_zeros( data_species, N_jz )
-N_jz = cbind( N_jz, "Biomass"=NA, "SE"=NA, "BiasCorr"=NA )
-for( j in seq_len(nrow(N_jz)) ){
-  message( "Integrating ", N_jz[j,'year'], " ", N_jz[j,'length_bin'], ": ", Sys.time() )
-  if( is.na(N_jz[j,'Biomass']) ){
-    grid0 = subset(grid, year==1999)
-    newdata = cbind( grid0[,c('depth','tmp_bot')],
-                     X_crs = grid0$X.utm / 1000,
-                     Y_crs = grid0$Y.utm / 1000,
-                     length_bin = N_jz[j,'length_bin'],
-                     year = N_jz[j,'year'],
-                     log.swept.area = log(1) )
-    # Area-expansion
-    index1 = integrate_output( fit,
-                    area = rep(1,nrow(newdata)),
-                    newdata = newdata,
-                    apply.epsilon = TRUE,
-                    bias.correct = FALSE,
-                    intern = TRUE )
-    N_jz[j,c('Biomass','SE','BiasCorr')] = index1[1:3] / 1e3
+if( "N_ct.RDS" %in% list.files(run_dir) ){
+  N_ct = readRDS( file = file.path(run_dir,"N_ct.RDS") )
+}else{
+  N_jz = expand.grid( length_bin = unique(data_species$length_bin), year=unique(data_species$year) )
+  N_jz = remove_all_zeros( data_species, N_jz )
+  N_jz = cbind( N_jz, "Biomass"=NA, "SE"=NA, "BiasCorr"=NA )
+  for( j in seq_len(nrow(N_jz)) ){
+    message( "Integrating ", N_jz[j,'year'], " ", N_jz[j,'length_bin'], ": ", Sys.time() )
+    if( is.na(N_jz[j,'Biomass']) ){
+      grid = as.data.frame(grid_1516)
+      grid$tmp_bot = (grid$tmp_bot - 10) / 10
+      grid$depth = grid$depth / 100
+      grid0 = subset(grid, year==1999)
+      newdata = cbind( grid0[,c('depth','tmp_bot')],
+                       X_crs = grid0$X.utm / 1000,
+                       Y_crs = grid0$Y.utm / 1000,
+                       length_bin = N_jz[j,'length_bin'],
+                       year = N_jz[j,'year'],
+                       log.swept.area = log(1) )
+      # Area-expansion
+      index1 = integrate_output( fit,
+                      area = rep(1,nrow(newdata)),
+                      newdata = newdata,
+                      apply.epsilon = TRUE,
+                      bias.correct = FALSE,
+                      intern = TRUE )
+      N_jz[j,c('Biomass','SE','BiasCorr')] = index1[1:3] / 1e3
+    }
   }
+  N_ct = tapply( N_jz$BiasCorr,
+                 INDEX = list(length_bin = N_jz$length_bin, year = N_jz$year),
+                 FUN = sum )
+  N_ct = N_ct / outer( rep(1,nrow(N_ct)), colSums(N_ct,na.rm=TRUE) )
+  write.csv( N_ct, file = file.path(run_dir,"N_ct.csv") )
+  saveRDS( N_ct, file = file.path(run_dir,"N_ct.RDS") )
 }
-N_ct = tapply( N_jz$BiasCorr,
-               INDEX = list(length_bin = N_jz$length_bin, year = N_jz$year),
-               FUN = sum )
-N_ct = N_ct / outer( rep(1,nrow(N_ct)), colSums(N_ct,na.rm=TRUE) )
-write.csv( N_ct, file = file.path(run_dir,"N_ct.csv") )
 
 #
-library(ggplot2)
 long = cbind( expand.grid(dimnames(N_ct)), "p"=as.numeric(N_ct) )
 ggplot( data=long  ) +
   facet_wrap( vars(length_bin), scales="free_y", ncol = 3, axis.labels = "margins" ) +
-  geom_line( aes(x=year, y=p, group = length_bin) ) # + scale_y_log10()
+  geom_line( aes(x=year, y=p, group = length_bin) ) + # + scale_y_log10()
+  geom_point( aes(x=year, y=p, group = length_bin) ) # + scale_y_log10()
 ggsave( file = file.path(run_dir,"index_by_length.png"), width=7, height=7 )
 
-library(ggplot2)
 ggplot( data=long ) +
   facet_wrap( vars(year), scales="free_y", ncol = 3, axis.labels = "margins" ) +
-  geom_line( aes(x=length_bin, y=p, group = year) ) # + scale_y_log10()
+  geom_line( aes(x=length_bin, y=p, group = year) ) + # + scale_y_log10()
+  geom_point( aes(x=length_bin, y=p, group = year) ) # + scale_y_log10()
 ggsave( file = file.path(run_dir,"comps_by_year.png"), width=7, height=7 )
