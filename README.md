@@ -1,7 +1,10 @@
 # AMARE-MED_2025
 
-See Agenda [here]([url](https://docs.google.com/document/d/1d2MCwmDmk5h1ro4yXKcuujGMZlNXlphw/edit)) 
+See Agenda [here](https://docs.google.com/document/d/1d2MCwmDmk5h1ro4yXKcuujGMZlNXlphw/edit) 
 
+Google drive [here](https://drive.google.com/drive/u/0/folders/1EeaN-mJcWyjEyvQbzxk7bzlOELfGuuj5)
+
+### Organization of github materials
 * Day 2 E Lecture:  Thorson [In preparation] -- generalized graphical mixed models.pptx
 * Day 2 E Code tutorial:  dsem [vignettes](https://james-thorson-noaa.github.io/dsem/articles/features.html)
 * Day 2 E exercise: Day_2_code_tutorial.docx
@@ -10,3 +13,4 @@ See Agenda [here]([url](https://docs.google.com/document/d/1d2MCwmDmk5h1ro4yXKcu
 * Day 4 G Code tutorial:  tinyVAST [multiple data types vignette](https://vast-lib.github.io/tinyVAST/articles/multiple_data.html)
 * Day 4 G group work:  other tinyVAST [vignettes](https://vast-lib.github.io/tinyVAST/articles/web_only/overview.html)
 * Day 4 group assignments:  Work on student data sets
+
