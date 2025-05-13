@@ -1,6 +1,6 @@
 # AMARE-MED_2025
 
-See Agenda [here](https://docs.google.com/document/d/1d2MCwmDmk5h1ro4yXKcuujGMZlNXlphw/edit) 
+See Agenda [here](https://docs.google.com/document/d/1qVYwoVY6bUzlHeafWXL9wnrIRcYKU23m/edit) 
 
 Google drive [here](https://drive.google.com/drive/u/0/folders/1EeaN-mJcWyjEyvQbzxk7bzlOELfGuuj5)
 
