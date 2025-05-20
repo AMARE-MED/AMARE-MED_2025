@@ -36,8 +36,10 @@ Structure:
 Try simulating data from a linear model:
 
 $$
+\begin{gathered}
 x_i \sim \mathrm{Normal}(2, \sigma_X^2 ) \\
 y_i \sim \mathrm{Normal}(1 + 0.5, \sigma_Y^2)
+\end{gathered}
 $$
 
 Where:
@@ -48,7 +50,7 @@ Where:
 
 *	$E(x_i )=2$ and $E(y_i)=1+0.5x_i$
 
-*	$x_i~\mathrm{Normal}(2,\sigma_X^2 )$ indicates that $x_i$ is simulated from a normal distribution, which can be done in R using `rnorm( n = 100, mean = 2, sd = 1)`
+*	$x_i \sim \mathrm{Normal}(2,\sigma_X^2 )$ indicates that $x_i$ is simulated from a normal distribution, which can be done in R using `rnorm( n = 100, mean = 2, sd = 1)`
 
 
 ```{r simulate_linear_model}
@@ -57,7 +59,7 @@ x = rnorm( n = 100, mean = 2, sd = 1 )
 y = rnorm( n = 100, mean = 1 + 0.5*x, sd = 1 )
 ```
 
-Then try fitting in dsem:
+Then try fitting in `dsem`:
 ```{r linear_model}
 #install.packages("dsem")
 library(dsem)
@@ -76,21 +78,31 @@ tsdata = ts(data.frame(x=x, y=y))
 # fit in dsem
 dsem_fit = dsem(
   tsdata = tsdata, 
-  sem = time_term
+  sem = time_term,
+  control = dsem_control(quiet = TRUE)
 )
+
+# Summarize dsem output
+summary(dsem_fit)
 ```
 
 You can then compare this with a linear model
 ```{r compare}
+# linear model
 lm_fit = lm( y ~ 1 + x )
-
-# 
 summary(lm_fit)
-summary(dsem_fit)
+```
+
+You can also plot output to see the graphical model
+```{r plot}
+# plot dsem
+plot( dsem_fit, 
+      edge_label = "value",
+      style = "igraph" )
 ```
 
 ## Step 1:  Simulate data (20 minutes)
-Please write an R script that simulates abundance at age $n_(a,t)$ for ages $a \in {1,2,…,10}$ and years $t \in {1,2,…,40}$ with the following simplified dynamics:
+Please write an R script that simulates abundance at age $n_{a,t}$ for ages $a \in {1,2,…,10}$ and years $t \in {1,2,…,40}$ with the following simplified dynamics:
 
 $$
 n_{a,t}=\begin{cases}
@@ -98,7 +110,7 @@ n_{a,t}=\begin{cases}
   n_{a-1,t-1} \times e^{\sigma_2 \epsilon_{a,t}-m} & \mathrm{otherwise}
 \end{cases}
 $$
-Where process errors $\epsilon_{a,t}~\mathrm{Normal}(0,\sigma^2)$, median age-0 recruitment $\mu_R=10^9$ [individuals], recruitment variation $\sigma_1=0.6$ [dimensionless], demographic variation $\sigma_2=0.1$ [dimensionless], and natural mortality $m=0.4$ [per year].
+Where process errors $\epsilon_{a,t} \sim \mathrm{Normal}(0,\sigma^2)$, median age-0 recruitment $\mu_R=10^9$ [individuals], recruitment variation $\sigma_1=0.6$ [dimensionless], demographic variation $\sigma_2=0.1$ [dimensionless], and natural mortality $m=0.4$ [per year].
 
 Now imagine that we can only sample abundance-at-age from a sampling gear with logistic selectivity:
 $$
