@@ -31,7 +31,7 @@ Structure:
 
 
 
-## Step 0:  Try fitting a linear model (20 minutes)
+## Step 1:  Try fitting a linear model (20 minutes)
 
 Try simulating data from a linear model:
 
@@ -101,7 +101,28 @@ plot( dsem_fit,
       style = "igraph" )
 ```
 
-## Step 1:  Simulate data (20 minutes)
+## Step 2:  Simulate autoregressive data (20 minutes)
+
+Next, please simulate data from an first-order autoregressive process:
+
+$$
+x_t \sim \begin{cases}
+  \text{Normal}(0, \sigma^2) & \text{ if } t=1 \\
+  \text{Normal}( \rho x_{t-1}, \sigma^2 ) & \text{ if } t > 2
+\end{cases}
+$$
+using $\rho = 0.8$ and $\sigma = 1$.  Try simulating $x_t$ for $t \in \{ 1, 2, ..., 40 \}$ times.  Then fit this in `dsem` using
+
+```{r time_term}
+time_term = "
+x <-> x, 0, sigma
+x -> x, 1, rho
+"
+```
+
+How well can you estimate the parameters $\rho$ and $\sigma$?
+
+## Step 3:  Simulate age-structured data (20 minutes)
 Please write an R script that simulates abundance at age $n_{a,t}$ for ages $a \in {1,2,…,10}$ and years $t \in {1,2,…,40}$ with the following simplified dynamics:
 
 $$
@@ -138,5 +159,6 @@ X <-> X, 0, parameter
 ```
 where these always have a lag of zero.  
 
-## Step 3:  Retrospective skill testing (20 minutes)
+## Step 4:  Retrospective skill testing (20 minutes)
+
 Finally, conduct a “leave-future-out” crossvalidation by dropping the final five years of simulated data.  To do so, modify `tsdata` by replacing values (measurements) with NAs (representing missing data).  This will ensure that the model still predicts those missing values.  
