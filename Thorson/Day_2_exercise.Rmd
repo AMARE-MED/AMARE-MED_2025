@@ -38,7 +38,7 @@ Try simulating data from a linear model:
 $$
 \begin{gathered}
 x_i \sim \mathrm{Normal}(2, \sigma_X^2 ) \\
-y_i \sim \mathrm{Normal}(1 + 0.5, \sigma_Y^2)
+y_i \sim \mathrm{Normal}(1 + 0.5 x_i, \sigma_Y^2)
 \end{gathered}
 $$
 
@@ -127,7 +127,7 @@ Please write an R script that simulates abundance at age $n_{a,t}$ for ages $a \
 
 $$
 n_{a,t}=\begin{cases}
-  \mu_R \times e^{\sigma_1 \epsilon_{a,t}-ma} & \mathrm{if} \ a=1 \ \& \ t=1 \  \\    
+  \mu_R \times e^{\sigma_1 \epsilon_{a,t}-ma} & \mathrm{if} \ a=1 \ or \ t=1 \  \\    
   n_{a-1,t-1} \times e^{\sigma_2 \epsilon_{a,t}-m} & \mathrm{otherwise}
 \end{cases}
 $$
